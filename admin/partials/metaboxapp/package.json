@@ -1,0 +1,36 @@
+{
+  "name": "copy-wpmu-posts-metabox",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "wp-scripts build",
+    "check-engines": "wp-scripts check-engines",
+    "check-licenses": "wp-scripts check-licenses",
+    "format": "wp-scripts format",
+    "lint:css": "wp-scripts lint-style",
+    "lint:js": "wp-scripts lint-js",
+    "lint:md:docs": "wp-scripts lint-md-docs",
+    "lint:md:js": "wp-scripts lint-md-js",
+    "lint:pkg-json": "wp-scripts lint-pkg-json",
+    "packages-update": "wp-scripts packages-update",
+    "plugin-zip": "wp-scripts plugin-zip",
+    "start": "wp-scripts start",
+    "start:hot": "wp-scripts start --hot",
+    "test:e2e": "wp-scripts test-e2e",
+    "test:unit": "wp-scripts test-unit-js"
+  },
+  "author": "Dhanuka Gunarathna",
+  "license": "ISC",
+  "devDependencies": {
+    "@wordpress/scripts": "^28.3.0"
+  },
+  "dependencies": {
+    "@wordpress/api-fetch": "^7.3.0",
+    "@wordpress/components": "^28.3.0",
+    "@wordpress/data": "^10.3.0",
+    "@wordpress/element": "^6.3.0",
+    "@wordpress/url": "^4.3.0",
+    "react-router-dom": "^6.17.0"
+  }
+}
