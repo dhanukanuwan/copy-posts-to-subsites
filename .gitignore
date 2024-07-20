@@ -1,2 +1,4 @@
 /node_modules
 /admin/partials/metaboxapp/node_modules
+.DS_Store
+**/.DS_Store
