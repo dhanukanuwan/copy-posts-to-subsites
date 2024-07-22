@@ -131,11 +131,12 @@ class Copy_Wpmu_Posts_Admin {
 		$message = '';
 
 		$args = array(
-			'public'   => 1,
-			'archived' => 0,
-			'mature'   => 0,
-			'spam'     => 0,
-			'deleted'  => 0,
+			'public'       => 1,
+			'archived'     => 0,
+			'mature'       => 0,
+			'spam'         => 0,
+			'deleted'      => 0,
+			'site__not_in' => get_current_blog_id(),
 		);
 
 		$sites = get_sites( $args );
@@ -186,7 +187,7 @@ class Copy_Wpmu_Posts_Admin {
 	}
 
 	/**
-	 * Add new organization callback.
+	 * Copy post data to subsite callback.
 	 *
 	 * @param    array $request request array.
 	 * @since    1.0.0
@@ -200,8 +201,70 @@ class Copy_Wpmu_Posts_Admin {
 		$success = false;
 		$message = '';
 
-		$data['post_id'] = $post_id;
-		$data['site_id'] = $site_id;
+		if ( ! empty( $post_id ) && ! empty( $site_id ) ) {
+
+			$post_data = get_post( $post_id );
+
+			if ( ! empty( $post_data ) && ! is_wp_error( $post_data ) ) {
+
+				$acf_data     = get_fields( $post_id, false );
+				$post_title   = $post_data->post_title;
+				$post_content = $post_data->post_content;
+				$post_type    = $post_data->post_type;
+				$post_status  = $post_data->post_status;
+				$post_name    = $post_data->post_name;
+
+				$custom_permalink = get_post_meta( $post_id, 'custom_permalink', true );
+				$page_template    = get_post_meta( $post_id, '_wp_page_template', true );
+
+				switch_to_blog( $site_id );
+
+				$new_post_args = array(
+					'post_title'   => $post_title,
+					'post_content' => $post_content,
+					'post_type'    => $post_type,
+					'post_author'  => get_current_user_id(),
+					'post_status'  => $post_status,
+					'post_name'    => $post_name,
+				);
+
+				$inserted_post_id = wp_insert_post( $new_post_args );
+
+				if ( ! empty( $inserted_post_id ) && ! is_wp_error( $inserted_post_id ) ) {
+
+					if ( ! empty( $acf_data ) ) {
+
+						foreach ( $acf_data as $key => $value ) {
+							update_field( $key, $value, $inserted_post_id );
+						}
+					}
+
+					if ( 'page' === $post_type ) {
+
+						if ( ! empty( $page_template ) ) {
+							update_post_meta( $inserted_post_id, '_wp_page_template', $page_template );
+						}
+
+						if ( is_front_page( $post_id ) ) {
+							update_option( 'page_on_front', $inserted_post_id );
+							update_option( 'show_on_front', 'page' );
+						}
+					}
+
+					if ( ! empty( $custom_permalink ) ) {
+						update_post_meta( $inserted_post_id, 'custom_permalink', $custom_permalink );
+					}
+
+					update_post_meta( $inserted_post_id, 'original_post_id', $post_id );
+
+					$data['new_post_id'] = $inserted_post_id;
+					$success             = true;
+				}
+
+				restore_current_blog();
+
+			}
+		}
 
 		$response = rest_ensure_response(
 			array(
@@ -223,5 +286,4 @@ class Copy_Wpmu_Posts_Admin {
 	public function copy_wpmu_posts_rest_api_user_permissions( $request ) { //phpcs:ignore
 		return current_user_can( 'manage_options' );
 	}
-
 }
