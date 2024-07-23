@@ -145,6 +145,8 @@ class Copy_Wpmu_Posts {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'copy_wpmu_posts_metabox_enqueue_scripts' );
 		$this->loader->add_action( 'rest_api_init', $plugin_admin, 'copy_wpmu_posts_get_sites_endpoint' );
 		$this->loader->add_action( 'rest_api_init', $plugin_admin, 'copy_wpmu_posts_copy_to_subsite_endpoint' );
+
+		$this->loader->add_filter( 'copy_wpmu_allowed_post_types', $plugin_admin, 'copy_wpmu_posts_enable_custom_post_types', 10, 1 );
 	}
 
 	/**

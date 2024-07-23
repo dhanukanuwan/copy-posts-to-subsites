@@ -1,5 +1,4 @@
 <?php
-
 /**
  * The public-facing functionality of the plugin.
  *
@@ -12,9 +11,6 @@
 
 /**
  * The public-facing functionality of the plugin.
- *
- * Defines the plugin name, version, and two examples hooks for how to
- * enqueue the public-facing stylesheet and JavaScript.
  *
  * @package    Copy_Wpmu_Posts
  * @subpackage Copy_Wpmu_Posts/public
@@ -44,59 +40,30 @@ class Copy_Wpmu_Posts_Public {
 	 * Initialize the class and set its properties.
 	 *
 	 * @since    1.0.0
-	 * @param      string    $plugin_name       The name of the plugin.
-	 * @param      string    $version    The version of this plugin.
+	 * @param      string $plugin_name       The name of the plugin.
+	 * @param      string $version    The version of this plugin.
 	 */
 	public function __construct( $plugin_name, $version ) {
 
 		$this->plugin_name = $plugin_name;
-		$this->version = $version;
-
+		$this->version     = $version;
 	}
 
 	/**
-	 * Register the stylesheets for the public-facing side of the site.
+	 * Adding hreflang tags to copied pages to represent the priginal page/post.
 	 *
 	 * @since    1.0.0
 	 */
-	public function enqueue_styles() {
+	public function copy_wpmu_posts_add_hreflang_tags() {
 
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in Copy_Wpmu_Posts_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The Copy_Wpmu_Posts_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
+		$post_id = get_the_ID();
 
-		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/copy-wpmu-posts-public.css', array(), $this->version, 'all' );
+		if ( empty( $post_id ) ) {
+			return;
+		}
 
-	}
-
-	/**
-	 * Register the JavaScript for the public-facing side of the site.
-	 *
-	 * @since    1.0.0
-	 */
-	public function enqueue_scripts() {
-
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in Copy_Wpmu_Posts_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The Copy_Wpmu_Posts_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
-
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/copy-wpmu-posts-public.js', array( 'jquery' ), $this->version, false );
+		$original_post_id = get_post_meta( $post_id, 'original_post_id', true );
+		$original_post_id = get_post_meta( $post_id, 'original_post_id', true );
 
 	}
 
