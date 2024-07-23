@@ -398,8 +398,6 @@ class Copy_Wpmu_Posts_Admin {
 						}
 					}
 				}
-				error_log(print_r($taxonomy_name,true));
-				error_log(print_r($term_ids,true));
 
 				wp_set_post_terms( $post_id, $term_ids, $taxonomy_name );
 			}
