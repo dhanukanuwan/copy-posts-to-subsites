@@ -227,6 +227,7 @@ class Copy_Wpmu_Posts_Admin {
 
 				$copied_languages = get_post_meta( $post_id, 'copied_languages', true );
 				$target_site_lng  = '';
+				$target_site_link = '';
 
 				if ( empty( $copied_languages ) ) {
 					$copied_languages = array();
@@ -236,7 +237,7 @@ class Copy_Wpmu_Posts_Admin {
 
 				switch_to_blog( $site_id );
 
-				$target_site_lng = get_locale();
+				$target_site_lng = get_option( 'WPLANG' );
 
 				$new_post_args = array(
 					'post_title'   => $post_title,
@@ -250,6 +251,8 @@ class Copy_Wpmu_Posts_Admin {
 				$inserted_post_id = wp_insert_post( $new_post_args );
 
 				if ( ! empty( $inserted_post_id ) && ! is_wp_error( $inserted_post_id ) ) {
+
+					$target_site_link = get_permalink( $inserted_post_id );
 
 					if ( ! empty( $acf_data ) ) {
 
@@ -278,10 +281,14 @@ class Copy_Wpmu_Posts_Admin {
 						update_post_meta( $inserted_post_id, 'custom_permalink', $custom_permalink );
 					}
 
-					update_post_meta( $inserted_post_id, 'original_post_id', $post_id );
-					update_post_meta( $inserted_post_id, 'original_post_url', $current_post_url );
-					update_post_meta( $inserted_post_id, 'original_site_id', $current_site_id );
-					update_post_meta( $inserted_post_id, 'original_lng', $current_site_lng );
+					$original_post_data = array(
+						'post_id' => $post_id,
+						'url'     => $current_post_url,
+						'site_id' => $current_site_id,
+						'lng'     => $current_site_lng,
+					);
+
+					update_post_meta( $inserted_post_id, 'original_post_data', $original_post_data );
 
 					$data['new_post_id'] = $inserted_post_id;
 					$success             = true;
@@ -291,11 +298,16 @@ class Copy_Wpmu_Posts_Admin {
 
 				if ( true === $success && ! empty( $target_site_lng ) ) {
 
-					if ( ! in_array( $target_site_lng, $copied_languages, true ) ) {
-						$copied_languages[] = $target_site_lng;
+					$item_key = array_search( $target_site_lng, array_column( $copied_languages, 'lng' ), true );
+
+					if ( false === $item_key ) {
+						$copied_languages[] = array(
+							'lng' => $target_site_lng,
+							'url' => $target_site_link,
+						);
 					}
 
-					update_post_meta( $inserted_post_id, 'copied_languages', $copied_languages );
+					update_post_meta( $post_id, 'copied_languages', $copied_languages );
 				}
 			}
 		}

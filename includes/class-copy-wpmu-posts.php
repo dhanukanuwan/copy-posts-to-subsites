@@ -159,6 +159,10 @@ class Copy_Wpmu_Posts {
 	private function define_public_hooks() {
 
 		$plugin_public = new Copy_Wpmu_Posts_Public( $this->get_plugin_name(), $this->get_version() );
+
+		$this->loader->add_action( 'wp_head', $plugin_public, 'copy_wpmu_posts_add_hreflang_tags', 1 );
+
+		$this->loader->add_filter( 'rank_math/opengraph/facebook/og_locale', $plugin_public, 'copy_wpmu_posts_rank_math_og_locale' );
 	}
 
 	/**

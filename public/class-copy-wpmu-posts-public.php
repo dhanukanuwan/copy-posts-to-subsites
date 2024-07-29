@@ -62,9 +62,46 @@ class Copy_Wpmu_Posts_Public {
 			return;
 		}
 
-		$original_post_id = get_post_meta( $post_id, 'original_post_id', true );
-		$original_post_id = get_post_meta( $post_id, 'original_post_id', true );
+		$current_lng = get_locale();
 
+		$copied_langs = get_post_meta( $post_id, 'copied_languages', true );
+
+		if ( ! empty( $copied_langs ) && is_array( $copied_langs ) ) {
+			foreach ( $copied_langs as $copied_lang ) {
+
+				if ( ! is_array( $copied_lang ) || ! isset( $copied_lang['lng'] ) ) {
+					return;
+				}
+
+				if ( $copied_lang['lng'] === $current_lng ) {
+					continue;
+				}
+
+				printf( "<link rel='alternate' hreflang='%s' href='%s' />\n", esc_attr( $copied_lang['lng'] ), esc_url( $copied_lang['url'] ) );
+			}
+		}
+
+		$original_post_data = get_post_meta( $post_id, 'original_post_data', true );
+
+		if ( ! empty( $original_post_data ) && isset( $original_post_data['lng'] ) ) {
+			printf( "<link rel='alternate' hreflang='%s' href='%s' />\n", esc_attr( $original_post_data['lng'] ), esc_url( $original_post_data['url'] ) );
+		}
 	}
 
+	/**
+	 * Rendering current site's language as site locale.
+	 *
+	 * @since    1.0.0
+	 * @param   string $content .
+	 */
+	public function copy_wpmu_posts_rank_math_og_locale( $content ) {
+
+		$current_site_lng = get_locale();
+
+		if ( ! empty( $current_site_lng ) ) {
+			$content = $current_site_lng;
+		}
+
+		return $content;
+	}
 }
