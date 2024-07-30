@@ -307,6 +307,8 @@ class Copy_Wpmu_Posts_Admin {
 						);
 					}
 
+					$data['target_url'] = $target_site_link;
+
 					update_post_meta( $post_id, 'copied_languages', $copied_languages );
 				}
 			}

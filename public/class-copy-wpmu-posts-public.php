@@ -69,7 +69,7 @@ class Copy_Wpmu_Posts_Public {
 		if ( ! empty( $copied_langs ) && is_array( $copied_langs ) ) {
 			foreach ( $copied_langs as $copied_lang ) {
 
-				if ( ! is_array( $copied_lang ) || ! isset( $copied_lang['lng'] ) ) {
+				if ( ! is_array( $copied_lang ) || ! isset( $copied_lang['lng'] ) || ! isset( $copied_lang['url'] ) ) {
 					return;
 				}
 
@@ -103,5 +103,114 @@ class Copy_Wpmu_Posts_Public {
 		}
 
 		return $content;
+	}
+
+	/**
+	 * Displaying images from the main site as a fallback.
+	 *
+	 * @since    1.0.0
+	 * @param   string $value .
+	 * @param   int    $post_id .
+	 * @param   array  $field .
+	 */
+	public function copy_wpmu_posts_acf_image_fallback( $value, $post_id, $field ) {
+
+		if ( is_main_site() ) {
+			return $value;
+		}
+
+		if ( isset( $field['type'] ) ) {
+
+			if ( 'group' !== $field['type'] && ! empty( $value ) ) {
+				return $value;
+			}
+
+			if ( 'group' === $field['type'] ) {
+				$group_value = $this->copy_wpmu_posts_group_image_fallback( $value, $post_id, $field );
+
+				return $group_value;
+			}
+		}
+
+		if ( isset( $field['type'] ) && 'image' !== $field['type'] ) {
+			return $value;
+		}
+
+		$original_post_data = get_post_meta( $post_id, 'original_post_data', true );
+
+		if ( empty( $original_post_data ) ) {
+			return $value;
+		}
+
+		$new_value = null;
+
+		if ( isset( $original_post_data['site_id'] ) && ! empty( $original_post_data['site_id'] ) ) {
+			switch_to_blog( (int) $original_post_data['site_id'] );
+
+			$new_value = get_field( $field['key'], $original_post_data['post_id'] );
+
+			restore_current_blog();
+		}
+
+		if ( ! empty( $new_value ) ) {
+			return $new_value;
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Add fallback to image fields inside a group.
+	 *
+	 * @since    1.0.0
+	 * @param   string $value .
+	 * @param   int    $post_id .
+	 * @param   array  $field .
+	 */
+	private function copy_wpmu_posts_group_image_fallback( $value, $post_id, $field ) {
+
+		$image_fields = array();
+
+		if ( isset( $field['sub_fields'] ) && ! empty( $field['sub_fields'] ) ) {
+
+			foreach ( $field['sub_fields'] as $sub_field ) {
+				if ( 'image' === $sub_field['type'] && empty( $value[ $sub_field['name'] ] ) ) {
+					$image_fields[] = $sub_field['name'];
+				}
+			}
+		}
+
+		// No empty image fields found.
+		if ( empty( $image_fields ) ) {
+			return $value;
+		}
+
+		$original_post_data = get_post_meta( $post_id, 'original_post_data', true );
+
+		if ( empty( $original_post_data ) ) {
+			return $value;
+		}
+
+		$new_value = null;
+
+		if ( isset( $original_post_data['site_id'] ) && ! empty( $original_post_data['site_id'] ) ) {
+			switch_to_blog( (int) $original_post_data['site_id'] );
+
+			$new_value = get_field( $field['key'], $original_post_data['post_id'] );
+
+			restore_current_blog();
+		}
+
+		if ( empty( $new_value ) ) {
+			return $value;
+		}
+
+		foreach ( $image_fields as $image_field ) {
+			if ( isset( $new_value[ $image_field ] ) && ! empty( $new_value[ $image_field ] ) ) {
+				$value[ $image_field ] = $new_value[ $image_field ];
+			}
+		}
+
+		return $value;
 	}
 }

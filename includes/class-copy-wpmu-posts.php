@@ -163,6 +163,7 @@ class Copy_Wpmu_Posts {
 		$this->loader->add_action( 'wp_head', $plugin_public, 'copy_wpmu_posts_add_hreflang_tags', 1 );
 
 		$this->loader->add_filter( 'rank_math/opengraph/facebook/og_locale', $plugin_public, 'copy_wpmu_posts_rank_math_og_locale' );
+		$this->loader->add_filter( 'acf/format_value', $plugin_public, 'copy_wpmu_posts_acf_image_fallback', 10, 3 );
 	}
 
 	/**
@@ -171,6 +172,11 @@ class Copy_Wpmu_Posts {
 	 * @since    1.0.0
 	 */
 	public function run() {
+
+		if ( ! is_multisite() ) {
+			return;
+		}
+
 		$this->loader->run();
 	}
 
