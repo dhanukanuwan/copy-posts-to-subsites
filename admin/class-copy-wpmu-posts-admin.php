@@ -355,11 +355,25 @@ class Copy_Wpmu_Posts_Admin {
 				if ( ! empty( $taxonomy_terms ) ) {
 
 					foreach ( $taxonomy_terms as $key => $taxonomy_term ) {
+
+						$term_acf_fields = get_fields( $post_taxonomy . '_' . $taxonomy_term->term_id );
+
+						if ( ! empty( $term_acf_fields ) && ! is_wp_error( $term_acf_fields ) ) {
+							$taxonomy_terms[ $key ] = (object) array_merge( (array) $taxonomy_term, array( 'term_acf_fields' => $term_acf_fields ) );
+						}
+
 						if ( $taxonomy_term->parent ) {
 
 							$parent_term = get_term_by( 'id', $taxonomy_term->parent, $post_taxonomy );
 
 							if ( ! empty( $parent_term ) ) {
+
+								$parent_acf_fields = get_fields( $post_taxonomy . '_' . $parent_term->term_id );
+
+								if ( ! empty( $parent_acf_fields ) && ! is_wp_error( $parent_acf_fields ) ) {
+									$parent_term = (object) array_merge( (array) $parent_term, array( 'term_acf_fields' => $parent_acf_fields ) );
+								}
+
 								$taxonomy_terms[ $key ] = (object) array_merge( (array) $taxonomy_term, array( 'parent_term' => $parent_term ) );
 							}
 						}
@@ -453,6 +467,12 @@ class Copy_Wpmu_Posts_Admin {
 
 				if ( ! empty( $new_parent ) && isset( $new_parent['term_id'] ) ) {
 					$parent_id = (int) $new_parent['term_id'];
+
+					if ( isset( $term_data->parent_term->term_acf_fields ) && ! empty( $term_data->parent_term->term_acf_fields ) ) {
+						foreach ( $term_data->parent_term->term_acf_fields as $term_acf_key => $term_acf_value ) {
+							update_field( $term_acf_key, $term_acf_value, $term_data->taxonomy . '_' . $new_parent['term_id'] );
+						}
+					}
 				}
 			}
 		}
@@ -467,6 +487,14 @@ class Copy_Wpmu_Posts_Admin {
 				'parent'      => $parent_id,
 			)
 		);
+
+		if ( ! empty( $new_term ) && ! is_wp_error( $new_term ) ) {
+			if ( isset( $term_data->term_acf_fields ) && ! empty( $term_data->term_acf_fields ) ) {
+				foreach ( $term_data->term_acf_fields as $term_acf_key => $term_acf_value ) {
+					update_field( $term_acf_key, $term_acf_value, $term_data->taxonomy . '_' . $new_term['term_id'] );
+				}
+			}
+		}
 
 		return $new_term;
 	}
