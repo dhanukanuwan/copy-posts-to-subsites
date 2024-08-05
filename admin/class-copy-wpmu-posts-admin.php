@@ -235,6 +235,15 @@ class Copy_Wpmu_Posts_Admin {
 
 				$post_terms = $this->copy_wpmu_get_post_terms( $post_id );
 
+				$post_args = array(
+					'post_title'   => $post_title,
+					'post_content' => $post_content,
+					'post_type'    => $post_type,
+					'post_name'    => $post_name,
+				);
+
+				$pre_copy_data = apply_filters( 'copy_wpmu_posts_before_copy_to_destination', $post_args, $post_id, $site_id );
+
 				switch_to_blog( $site_id );
 
 				$target_site_lng = get_option( 'WPLANG' );
@@ -252,6 +261,8 @@ class Copy_Wpmu_Posts_Admin {
 
 				if ( ! empty( $inserted_post_id ) && ! is_wp_error( $inserted_post_id ) ) {
 
+					do_action( 'copy_wpmu_posts_after_copy_to_destination', $pre_copy_data, $inserted_post_id );
+
 					$target_site_link = get_permalink( $inserted_post_id );
 
 					if ( ! empty( $acf_data ) ) {
@@ -259,6 +270,14 @@ class Copy_Wpmu_Posts_Admin {
 						foreach ( $acf_data as $key => $value ) {
 							update_field( $key, $value, $inserted_post_id );
 						}
+					}
+
+					if ( 'game' === $post_type ) {
+
+						$game_data = array(
+							'original_game' => $post_id,
+							'new_game'      => $inserted_post_id,
+						);
 					}
 
 					if ( 'page' === $post_type ) {
@@ -516,5 +535,195 @@ class Copy_Wpmu_Posts_Admin {
 		$allowed_post_types = array_merge( $allowed_post_types, $post_types );
 
 		return $allowed_post_types;
+	}
+
+	/**
+	 * Automaticaaly copy play page belong to the game.
+	 *
+	 * @param    int   $post_data .
+	 * @param    array $post_id .
+	 * @param    int   $destination_site .
+	 * @since    1.0.0
+	 */
+	public function copy_wpmu_posts_handle_gameplay_pages( $post_data, $post_id, $destination_site ) {
+
+		if ( empty( $post_id ) || empty( $post_data ) || empty( $destination_site ) ) {
+			return $post_data;
+		}
+
+		if ( 'game' !== $post_data['post_type'] ) {
+			return $post_data;
+		}
+
+		$play_page_data = $this->copy_wpmu_posts_get_gameplay_page_data( $post_id );
+
+		if ( empty( $play_page_data ) ) {
+			return $post_data;
+		}
+
+		$post_data['play_page_data'] = $play_page_data;
+
+		return $post_data;
+	}
+
+	/**
+	 * Get play page data belong to a game.
+	 *
+	 * @param    int $game_id .
+	 * @since    1.0.0
+	 */
+	private function copy_wpmu_posts_get_gameplay_page_data( $game_id ) {
+
+		$play_page_data = array();
+
+		if ( empty( $game_id ) ) {
+			return $play_page_data;
+		}
+
+		$play_page_id = get_post_meta( $game_id, 'game_play_page_id', true );
+
+		if ( empty( $play_page_id ) ) {
+			return $play_page_data;
+		}
+
+		$play_page = get_post( $play_page_id );
+
+		if ( empty( $play_page ) || is_wp_error( $play_page ) ) {
+			return $play_page_data;
+		}
+
+		$play_page_data = array(
+			'id'      => $play_page_id,
+			'title'   => $play_page->post_title,
+			'slug'    => $play_page->post_name,
+			'game_id' => $game_id,
+		);
+
+		$play_meta_keys = array(
+			'play_page_title_two',
+			'_yoast_wpseo_title',
+			'_yoast_wpseo_metadesc',
+		);
+
+		foreach ( $play_meta_keys as $play_meta_key ) {
+
+			$play_meta_val = get_post_meta( $play_page_id, $play_meta_key, true );
+
+			if ( ! empty( $play_meta_val ) ) {
+				$play_page_data[ $play_meta_key ] = $play_meta_val;
+			}
+		}
+
+		$offers = get_field( 'offers' );
+
+		if ( ! empty( $offers ) ) {
+			$play_page_data['offers'] = $offers;
+		}
+
+		return $play_page_data;
+	}
+
+	/**
+	 * Copy play page data belong to a game.
+	 *
+	 * @param    array $pre_copy_data .
+	 * @param    int   $new_post_id .
+	 * @since    1.0.0
+	 */
+	public function copy_wpmu_posts_copy_gameplay_page_data( $pre_copy_data, $new_post_id ) {
+
+		if ( ! isset( $pre_copy_data['play_page_data'] ) || empty( $new_post_id ) ) {
+			return;
+		}
+
+		if ( 'game' !== $pre_copy_data['post_type'] ) {
+			return;
+		}
+
+		$play_page_data = $pre_copy_data['play_page_data'];
+
+		$page_data = array(
+			'post_title'   => wp_strip_all_tags( $play_page_data['title'] ),
+			'post_name'    => $play_page_data['slug'],
+			'post_content' => ' ',
+			'post_status'  => 'publish',
+			'post_author'  => get_current_user_id(),
+			'post_type'    => 'gameplay',
+			'meta_input'   => array(
+				'belong_game_id' => $new_post_id,
+			),
+		);
+
+		$play_page_id = wp_insert_post( $page_data );
+
+		if ( ! empty( $play_page_id ) && ! is_wp_error( $play_page_id ) ) {
+
+			update_post_meta( $new_post_id, 'game_play_page_id', $play_page_id );
+
+			$play_meta_keys = array(
+				'play_page_title_two',
+				'_yoast_wpseo_title',
+				'_yoast_wpseo_metadesc',
+			);
+
+			foreach ( $play_meta_keys as $play_meta_key ) {
+				if ( isset( $play_page_data[ $play_meta_key ] ) ) {
+					update_post_meta( $play_page_id, $play_meta_key, $play_page_data[ $play_meta_key ] );
+				}
+			}
+
+			if ( isset( $play_page_data['offers'] ) ) {
+				update_field( 'offers', $play_page_data['offers'], $play_page_id );
+			}
+		}
+	}
+
+	/**
+	 * Automaticaaly copy game and operator custom re-order data.
+	 *
+	 * @param    int   $post_data .
+	 * @param    array $post_id .
+	 * @param    int   $destination_site .
+	 * @since    1.0.0
+	 */
+	public function copy_wpmu_posts_handle_reorder_data( $post_data, $post_id, $destination_site ) {
+
+		if ( empty( $post_id ) || empty( $post_data ) || empty( $destination_site ) ) {
+			return $post_data;
+		}
+
+		$allowed_post_types = array( 'game', 'operator' );
+
+		if ( ! in_array( $post_data['post_type'], $allowed_post_types, true ) ) {
+			return $post_data;
+		}
+
+		$reorder_data = array();
+		$reorder_keys = array(
+			'roger_post_order',
+			'roger_post_order_gb',
+			'roger_post_order_ca',
+			'roger_post_order_rest',
+		);
+
+		$game_categories = wp_get_post_terms( $post_id, 'game_category' );
+
+		if ( ! empty( $game_categories ) && ! is_wp_error( $game_categories ) ) {
+			foreach ( $game_categories as $game_category ) {
+
+				$category_slug = str_replace( '_', '-', $game_category->slug );
+
+				$gb_key   = 'roger_' . $category_slug . '_order_gb';
+				$ca_key   = 'roger_' . $category_slug . '_order_ca';
+				$rest_key = 'roger_' . $category_slug . '_order_rest';
+
+				$reorder_keys[] = $gb_key;
+				$reorder_keys[] = $ca_key;
+				$reorder_keys[] = $rest_key;
+
+			}
+		}
+
+		return $post_data;
 	}
 }

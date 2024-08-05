@@ -145,8 +145,11 @@ class Copy_Wpmu_Posts {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'copy_wpmu_posts_metabox_enqueue_scripts' );
 		$this->loader->add_action( 'rest_api_init', $plugin_admin, 'copy_wpmu_posts_get_sites_endpoint' );
 		$this->loader->add_action( 'rest_api_init', $plugin_admin, 'copy_wpmu_posts_copy_to_subsite_endpoint' );
+		$this->loader->add_action( 'copy_wpmu_posts_after_copy_to_destination', $plugin_admin, 'copy_wpmu_posts_copy_gameplay_page_data', 10, 2 );
 
 		$this->loader->add_filter( 'copy_wpmu_allowed_post_types', $plugin_admin, 'copy_wpmu_posts_enable_custom_post_types', 10, 1 );
+		$this->loader->add_filter( 'copy_wpmu_posts_before_copy_to_destination', $plugin_admin, 'copy_wpmu_posts_handle_gameplay_pages', 10, 3 );
+		$this->loader->add_filter( 'copy_wpmu_posts_before_copy_to_destination', $plugin_admin, 'copy_wpmu_posts_handle_reorder_data', 10, 3 );
 	}
 
 	/**
