@@ -724,6 +724,47 @@ class Copy_Wpmu_Posts_Admin {
 			}
 		}
 
+		foreach ( $reorder_keys as $reorder_key ) {
+
+			$meta_value = get_post_meta( $post_id, $reorder_key, true );
+
+			if ( ! empty( $meta_value ) ) {
+				$reorder_data[ $reorder_key ] = $meta_value;
+			}
+		}
+
+		if ( ! empty( $reorder_data ) ) {
+			$post_data['game_operator_meta_data'] = $reorder_data;
+		}
+
 		return $post_data;
+	}
+
+	/**
+	 * Automaticaaly copy game and operator custom re-order data.
+	 *
+	 * @param    array $pre_copy_data .
+	 * @param    int   $new_post_id .
+	 * @since    1.0.0
+	 */
+	public function copy_wpmu_posts_copy_reorder_data( $pre_copy_data, $new_post_id ) {
+
+		if ( ! isset( $pre_copy_data['game_operator_meta_data'] ) || empty( $new_post_id ) ) {
+			return;
+		}
+
+		$allowed_post_types = array( 'game', 'operator' );
+
+		if ( ! in_array( $pre_copy_data['post_type'], $allowed_post_types, true ) ) {
+			return;
+		}
+
+		$meta_data = $pre_copy_data['game_operator_meta_data'];
+
+		if ( ! empty( $meta_data ) ) {
+			foreach ( $meta_data as $meta_key => $meta_val ) {
+				update_post_meta( $new_post_id, $meta_key, $meta_val );
+			}
+		}
 	}
 }
