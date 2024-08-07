@@ -77,7 +77,15 @@ class Copy_Wpmu_Posts_Public {
 					continue;
 				}
 
-				printf( "<link rel='alternate' hreflang='%s' href='%s' />\n", esc_attr( $copied_lang['lng'] ), esc_url( $copied_lang['url'] ) );
+				$copied_post_status = 'draft';
+
+				if ( isset( $copied_lang['status'] ) ) {
+					$copied_post_status = $copied_lang['status'];
+				}
+
+				if ( 'publish' === $copied_post_status ) {
+					printf( "<link rel='alternate' hreflang='%s' href='%s' />\n", esc_attr( $copied_lang['lng'] ), esc_url( $copied_lang['url'] ) );
+				}
 			}
 		}
 

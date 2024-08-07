@@ -253,7 +253,7 @@ class Copy_Wpmu_Posts_Admin {
 					'post_content' => $post_content,
 					'post_type'    => $post_type,
 					'post_author'  => get_current_user_id(),
-					'post_status'  => $post_status,
+					'post_status'  => 'draft',
 					'post_name'    => $post_name,
 				);
 
@@ -321,8 +321,11 @@ class Copy_Wpmu_Posts_Admin {
 
 					if ( false === $item_key ) {
 						$copied_languages[] = array(
-							'lng' => $target_site_lng,
-							'url' => $target_site_link,
+							'lng'     => $target_site_lng,
+							'url'     => $target_site_link,
+							'post_id' => $data['new_post_id'],
+							'site_id' => $site_id,
+							'status'  => 'draft',
 						);
 					}
 
@@ -646,7 +649,7 @@ class Copy_Wpmu_Posts_Admin {
 			'post_title'   => wp_strip_all_tags( $play_page_data['title'] ),
 			'post_name'    => $play_page_data['slug'],
 			'post_content' => ' ',
-			'post_status'  => 'publish',
+			'post_status'  => 'draft',
 			'post_author'  => get_current_user_id(),
 			'post_type'    => 'gameplay',
 			'meta_input'   => array(
@@ -764,6 +767,49 @@ class Copy_Wpmu_Posts_Admin {
 		if ( ! empty( $meta_data ) ) {
 			foreach ( $meta_data as $meta_key => $meta_val ) {
 				update_post_meta( $new_post_id, $meta_key, $meta_val );
+			}
+		}
+	}
+
+	/**
+	 * Update hreflng related data when copied post transition from draft to publish.
+	 *
+	 * @param    string  $new_status .
+	 * @param    string  $old_status .
+	 * @param    WP_Post $post .
+	 * @since    1.0.0
+	 */
+	public function copy_wpmu_posts_update_hreflng_data( $new_status, $old_status, $post ) {
+
+		if ( 'publish' === $new_status && 'publish' !== $old_status ) {
+
+			$original_post = get_post_meta( $post->ID, 'original_post_data', true );
+
+			if ( empty( $original_post ) ) {
+				return;
+			}
+
+			$post_link = get_permalink( $post->ID );
+
+			if ( isset( $original_post['site_id'] ) && ! empty( $original_post['site_id'] ) ) {
+
+				switch_to_blog( $original_post['site_id'] );
+
+				$copied_languages = get_post_meta( $original_post['post_id'], 'copied_languages', true );
+
+				if ( ! empty( $copied_languages ) ) {
+
+					$item_key = array_search( $post->ID, array_column( $copied_languages, 'post_id' ), true );
+
+					if ( false !== $item_key ) {
+						$copied_languages[ $item_key ]['status'] = 'publish';
+						$copied_languages[ $item_key ]['url']    = $post_link;
+
+						update_post_meta( $original_post['post_id'], 'copied_languages', $copied_languages );
+					}
+				}
+
+				restore_current_blog();
 			}
 		}
 	}
